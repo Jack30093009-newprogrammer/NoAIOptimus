@@ -1,12 +1,30 @@
-﻿using System;
+using System;
+using System.Management; 
 
-namespace HelloApp
+class Program
 {
-    class Program
+    
+    static List<string> nameOfProgrammsAutoLoad = new List<string>(); //создаем список программ в автозагрузке
+    
+    static void addToList(string nameOfProg)
     {
-        static void Main(string[] args)
+        nameOfProgrammsAutoLoad.Add(nameOfProg);
+    }
+
+    static void Main()
+    {
+        
+        SelectQuery query = new SelectQuery("SELECT * FROM Win32_StartupCommand");
+        using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(query))
         {
-            Console.WriteLine("Hello, World!");
+            
+            foreach (ManagementObject item in searcher.Get())
+            {
+                //сохраним список программ себе
+                string name = item["Name"].ToString();
+                addToList(name);
+                Console.WriteLine($"Программа: {item["Name"]}");
+            }
         }
     }
 }

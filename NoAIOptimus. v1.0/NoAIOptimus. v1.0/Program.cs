@@ -1,14 +1,22 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Management;
 using System.Diagnostics;
 using System.Threading;
 using System.Collections.Generic;
 using LibreHardwareMonitor.Hardware;
 
+
+public static class StringColorExtensions
+{
+    public static string Rgb(this string text, byte r, byte g, byte b)
+    {
+        return $"\x1b[38;2;{r};{g};{b}m{text}\x1b[0m";
+    }
+}
 class Program
 {
-
     static List<string> nameOfProgrammsAutoLoad = new List<string>(); //создаем список программ в автозагрузке
     static DriveInfo[] allDrives = DriveInfo.GetDrives(); //для работы с диском
 
@@ -16,37 +24,33 @@ class Program
     {
         nameOfProgrammsAutoLoad.Add(nameOfProg);
     }
-
+    
+//try to read heheh lol
     static void Main()
     {
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding = Encoding.UTF8;
+        Console.CursorVisible = false; 
 
         SelectQuery query = new SelectQuery("SELECT * FROM Win32_StartupCommand");
         using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(query))
         {
-            long counter = 0;
+            // Проигрывание первых нот "Имперского марша"
+            //Console.Beep(440, 500);
+            //Console.Beep(440, 500);
+            //Console.Beep(440, 500);
+            //Console.Beep(349, 350);
+            //Console.Beep(523, 150);
+            //Console.Beep(440, 500);
+            //Console.Beep(349, 350);
+            //Console.Beep(523, 150);
+            //Console.Beep(440, 1000);
+
             foreach (ManagementObject item in searcher.Get())
             {
-                //сохраним список программ себе
                 string name = item["Name"].ToString();
-                addToList(name);
-                Console.WriteLine($"{counter}. {item["Name"]}");
-                ++counter;
-            }
-
-
-        }
-        foreach (DriveInfo d in allDrives)
-        {
-            Console.WriteLine("Диск {0}", d.Name);
-            Console.WriteLine("Тип диска: {0}", d.DriveType);
-            if (d.IsReady)
-            {
-                Console.WriteLine("Имя тома: {0}", d.VolumeLabel);
-                Console.WriteLine("Файловая система: {0}", d.DriveFormat);
-                Console.WriteLine("{0,-55} {1,20:F2} Гб", "Доступно пространства для текущего пользователя:", d.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0));
-                Console.WriteLine("{0,-55} {1,20:F2} Гб", "Всего доступно пространства:", d.TotalFreeSpace / (1024.0 * 1024.0 * 1024.0));
-                Console.WriteLine("{0,-55} {1,20:F2} Гб", "Размер всего диска:", d.TotalSize / (1024.0 * 1024.0 * 1024.0));
-
+                string location = item["Location"]?.ToString() ?? "Unknown";
+                addToList($"{name} | Где же гад: {location}");
             }
         }
 
@@ -66,32 +70,21 @@ class Program
                 {
                     3 => "HDD",
                     4 => "SSD",
-                    _ => "Не определено (например, флешка/внешний диск)"
+                    _ => "Страшно, очень страшно! Если бы мы знали, что это такое, мы не знаем, что это такое!"
                 };
-                if (typeStr == "HDD")
-                {
-                    //hdd
-                    isHDD = true;
-
-                }
-                else if (typeStr == "SSD")
-                {
-                    //HHD ну я хз пока что еще можно
-                    isSSD = true;
-                }
-
-
-                Console.WriteLine($"Накопитель: {name} | Физический тип: {typeStr}");
+                if (typeStr == "HDD") isHDD = true;
+                else if (typeStr == "SSD") isSSD = true;
             }
         }
-        //поработем с цешкой (он интересуеь больше)
+
         string driveC = "C:";
         using var readCounter = new PerformanceCounter("LogicalDisk", "Disk Read Bytes/sec", driveC);
         using var writeCounter = new PerformanceCounter("LogicalDisk", "Disk Write Bytes/sec", driveC);
         readCounter.NextValue();
         writeCounter.NextValue();
 
-        bool showTemperature = false;
+        // 0 - автозагрузка и диски, 1 - скорости работы, 2 - температура и здоровье
+        int currentScreen = 0;
 
         while (true)
         {
@@ -100,25 +93,49 @@ class Program
                 var key = Console.ReadKey(true);
                 if (key.Key == ConsoleKey.Spacebar)
                 {
-                    showTemperature = !showTemperature;
+                    currentScreen = (currentScreen + 1) % 3;
                 }
             }
 
             Console.Clear();
-            Console.WriteLine("[Нажмите ПРОБЕЛ для смены режима экрана]");
+            Console.WriteLine($"[{"Нажмите ПРОБЕЛ для переключения экранов утилиты".Rgb(255, 0, 0)}]");
 
-            if (!showTemperature)
+            if (currentScreen == 0)
+            {
+                Console.WriteLine("\n--- РЕЖИМ АВТОЗАГРУЗКИ И ЛОГИЧЕСКИХ ДИСКОВ ---".Rgb(0, 200, 255));
+
+                Console.WriteLine("\nПрограммы в автозагрузке:".Rgb(255, 215, 0));
+                for (int i = 0; i < nameOfProgrammsAutoLoad.Count; i++)
+                {
+                    Console.WriteLine($"{i.ToString().Rgb(100, 255, 100)}. {nameOfProgrammsAutoLoad[i]}");
+                }
+
+                Console.WriteLine("\nИнформация о логических дисках:".Rgb(255, 215, 0));
+                foreach (DriveInfo d in allDrives)
+                {
+                    Console.WriteLine($"Диск {d.Name.Rgb(0, 255, 180)}");
+                    Console.WriteLine($"  Тип диска: {d.DriveType.ToString().Rgb(180, 180, 180)}");
+                    if (d.IsReady)
+                    {
+                        Console.WriteLine($"  Имя тома: {d.VolumeLabel}");
+                        Console.WriteLine($"  Файловая система: {d.DriveFormat}");
+                        Console.WriteLine("  {0,-55} {1,20:F2} Гб", "Доступно пространства для текущего пользователя:", d.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0));
+                        Console.WriteLine("  {0,-55} {1,20:F2} Гб", "Всего доступно пространства:", d.TotalFreeSpace / (1024.0 * 1024.0 * 1024.0));
+                        Console.WriteLine("  {0,-55} {1,20:F2} Гб", "Размер всего диска:", d.TotalSize / (1024.0 * 1024.0 * 1024.0));
+                    }
+                }
+            }
+            else if (currentScreen == 1)
             {
                 double readSpeedMbs = readCounter.NextValue() / 1024 / 1024;
                 double writeSpeedMbs = writeCounter.NextValue() / 1024 / 1024;
-                Console.WriteLine($"\n--- РЕЖИМ СКОРОСТЕЙ ДИСКА [{driveC}] ---");
-                Console.WriteLine($"Скорость чтения: {readSpeedMbs:F2} МБ/с");
-                Console.WriteLine($"Скорость записи: {writeSpeedMbs:F2} МБ/с");
+                Console.WriteLine($"\n--- РЕЖИМ СКОРОСТЕЙ ДИСКА [{driveC.Rgb(255, 215, 0)}] ---".Rgb(0, 200, 255));
+                Console.WriteLine($"Скорость чтения: {$"{readSpeedMbs:F2} МБ/с".Rgb(50, 205, 50)}");
+                Console.WriteLine($"Скорость записи: {$"{writeSpeedMbs:F2} МБ/с".Rgb(255, 140, 0)}");
             }
-            else
+            else if (currentScreen == 2)
             {
-                //температура
-                Console.WriteLine("\n--- РЕЖИМ ТЕМПЕРАТУРЫ НАКОПИТЕЛЕЙ (ПО ЗОНАМ+ЛИМИТЫ) ---");
+                Console.WriteLine("\n--- РЕЖИМ ТЕМПЕРАТУРЫ И ЗДОРОВЬЯ НАКОПИТЕЛЕЙ ---".Rgb(0, 200, 255));
 
                 bool detected = false;
                 long tempCounter = 0;
@@ -129,23 +146,47 @@ class Program
                     {
                         if (sensor.SensorType == SensorType.Temperature)
                         {
+                            float temp = sensor.Value ?? 0;
+                            string tempText = $"{temp:F1} °C";
+
+                            // Красим температуру в зависимости от нагрева
+                            string coloredTemp = temp > 55 ? tempText.Rgb(255, 60, 60) :
+                                                 temp > 42 ? tempText.Rgb(255, 200, 0) :
+                                                             tempText.Rgb(50, 205, 50);
+
                             if (tempCounter == 3 || tempCounter == 4)
                             {
-                                Console.WriteLine($"{tempCounter}. Не беспокойтесь - это лимит {hardware.Name}: {sensor.Value ?? 0:F1} °C");
+                                Console.WriteLine($"{tempCounter}. {"Не беспокойтесь - это лимит".Rgb(140, 140, 140)} {hardware.Name}: {coloredTemp}");
                                 detected = true;
                                 ++tempCounter;
-                                continue; // Пропускаем нижний вывод и идем к следующему датчику
+                                continue;
                             }
-                            Console.WriteLine($"{tempCounter}. Температура накопителя {hardware.Name}: {sensor.Value ?? 0:F1} °C");
+                            Console.WriteLine($"{tempCounter}. Температура накопителя {hardware.Name.Rgb(0, 255, 255)}: {coloredTemp}");
                             detected = true;
                             ++tempCounter;
+                        }
+
+                        if (sensor.SensorType == SensorType.Level && (sensor.Name.Contains("Life") || sensor.Name.Contains("Wear") || sensor.Name.Contains("Health")))
+                        {
+                            float health = sensor.Value ?? 0;
+                            string healthText = $"{health:F0}%";
+                            string coloredHealth = health < 30 ? healthText.Rgb(255, 60, 60) :
+                                                   health < 70 ? healthText.Rgb(255, 200, 0) :
+                                                                 healthText.Rgb(50, 205, 50);
+
+                            Console.WriteLine($"\n{"Здоровье:".Rgb(255, 215, 0)}\nОставшийся ресурс накопителя {hardware.Name}: {coloredHealth}");
+                        }
+
+                        if (sensor.SensorType == SensorType.Factor && (sensor.Name.Contains("Error") || sensor.Name.Contains("Spare")))
+                        {
+                            Console.WriteLine($"{"[NVMe Статус]".Rgb(180, 100, 255)} {sensor.Name} на {hardware.Name}: {sensor.Value ?? 0:F0}");
                         }
                     }
                 }
 
                 if (!detected)
                 {
-                    Console.WriteLine("Датчики не найдены. Перезапустите приложение ОТ ИМЕНИ АДМИНИСТРАТОРА!");
+                    Console.WriteLine("Датчики не найдены. Перезапустите приложение " + "ОТ ИМЕНИ АДМИНИСТРАТОРА!".Rgb(255, 50, 50));
                 }
             }
 

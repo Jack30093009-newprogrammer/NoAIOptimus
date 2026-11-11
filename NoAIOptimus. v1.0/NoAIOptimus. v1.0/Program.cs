@@ -5,6 +5,7 @@ using System.Management;
 using System.Diagnostics;
 using System.Threading;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using LibreHardwareMonitor.Hardware;
 
 
@@ -17,6 +18,24 @@ public static class StringColorExtensions
 }
 class Program
 {
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [DllImport("kernel32.dll")]
+    static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+    [DllImport("kernel32.dll")]
+    static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+    static void EnableAnsiColors()
+    {
+        var handle = GetStdHandle(-11); // STD_OUTPUT_HANDLE
+        if (GetConsoleMode(handle, out uint mode))
+        {
+            SetConsoleMode(handle, mode | 0x0004); // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+        }
+    }
     static List<string> nameOfProgrammsAutoLoad = new List<string>(); //создаем список программ в автозагрузке
     static DriveInfo[] allDrives = DriveInfo.GetDrives(); //для работы с диском
 
@@ -28,6 +47,7 @@ class Program
 //try to read heheh lol
     static void Main()
     {
+        EnableAnsiColors(); //метод для починки цветов в режиме админа
         Console.OutputEncoding = Encoding.UTF8;
         Console.InputEncoding = Encoding.UTF8;
         Console.CursorVisible = false; 

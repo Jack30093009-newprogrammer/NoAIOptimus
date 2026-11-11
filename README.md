@@ -21,3 +21,8 @@
 ### Стек:
 * **Язык:** C# / .NET 8 (Windows)
 * **Библиотеки и API:** `LibreHardwareMonitorLib`, `System.Management` (WMI), `PerformanceCounter`, WinAPI (`kernel32.dll` для поддержки ANSI-цветов).
+
+### Обратная связь и предложения:
+Есть идеи по новым функциям или нашли баг? Пишите на почту или создавайте задачу в репозитории:
+* 📧 **Почта:** [nikusa3009@gmail.com](mailto:nikusa3009@gmail.com)
+* 🐛 **Идеи и баги:** вкладка **[Issues](../../issues)** в этом репозитории
